@@ -43,12 +43,20 @@ export function useSummaries(from?: string, to?: string) {
   return useQuery({ queryKey: qk.summaries(from, to), queryFn: () => apiSummaries(from, to) });
 }
 
-export function useMeals(userId?: string) {
-  return useQuery({ queryKey: qk.meals(userId), queryFn: () => apiListMeals(userId) });
+export function useMeals(userId?: string, enabled = true) {
+  return useQuery({
+    queryKey: qk.meals(userId),
+    queryFn: () => apiListMeals(userId),
+    enabled,
+  });
 }
 
-export function useSettlements(userId?: string) {
-  return useQuery({ queryKey: qk.settlements(userId), queryFn: () => apiListSettlements(userId) });
+export function useSettlements(userId?: string, enabled = true) {
+  return useQuery({
+    queryKey: qk.settlements(userId),
+    queryFn: () => apiListSettlements(userId),
+    enabled,
+  });
 }
 
 export function useSettings() {
@@ -123,8 +131,12 @@ export function useDeleteMeal() {
 export function useSettle() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (vars: { user_id: string; amount: number; notes?: string }) =>
-      apiCreateSettlement(vars),
+    mutationFn: (vars: {
+      user_id: string;
+      amount: number;
+      notes?: string;
+      settled_on?: string;
+    }) => apiCreateSettlement(vars),
     onSuccess: () => {
       invalidateMealData(qc);
       qc.invalidateQueries({ queryKey: ["settlements"] });

@@ -2,15 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { Coffee, Moon, Egg, Check, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { EggPicker } from "@/components/egg-picker";
 import { LogoutButton } from "@/components/logout-button";
 import { useAuth } from "@/store/auth";
 import { useCreateMeal, useMeals, useSummaries } from "@/lib/queries";
 import { formatRs, localDateString } from "@/lib/utils";
-import type { MealType } from "@/lib/types";
+import type { MealRecord, MealType } from "@/lib/types";
 
 export default function DashboardPage() {
   const userId = useAuth((s) => s.userId);
@@ -18,14 +25,25 @@ export default function DashboardPage() {
   const today = localDateString();
 
   const { data: summaries } = useSummaries();
-  const { data: meals } = useMeals(userId ?? undefined);
+  const { data: meals } = useMeals(userId ?? undefined, !!userId);
   const createMeal = useCreateMeal();
 
   const [picker, setPicker] = useState<MealType | null>(null);
+  const [datesFor, setDatesFor] = useState<MealType | null>(null);
 
   const me = useMemo(
     () => summaries?.find((s) => s.user.id === userId),
     [summaries, userId],
+  );
+
+  const datesList = useMemo(
+    () =>
+      datesFor
+        ? (meals ?? [])
+            .filter((m) => m.meal_type === datesFor)
+            .sort((a, b) => (a.meal_date < b.meal_date ? 1 : -1))
+        : [],
+    [meals, datesFor],
   );
 
   const todaysMeals = useMemo(
@@ -76,10 +94,21 @@ export default function DashboardPage() {
             {me ? formatRs(me.balance) : "Rs. 0"}
           </p>
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-            <MiniStat label="Breakfast" value={me?.breakfast_count ?? 0} />
-            <MiniStat label="Dinner" value={me?.dinner_count ?? 0} />
+            <MiniStat
+              label="Breakfast"
+              value={me?.breakfast_count ?? 0}
+              onClick={() => setDatesFor("breakfast")}
+            />
+            <MiniStat
+              label="Dinner"
+              value={me?.dinner_count ?? 0}
+              onClick={() => setDatesFor("dinner")}
+            />
             <MiniStat label="Eggs" value={me?.egg_count ?? 0} />
           </div>
+          <p className="mt-2 text-center text-[11px] opacity-70">
+            Tap Breakfast or Dinner to see the dates
+          </p>
         </CardContent>
       </Card>
 
@@ -143,16 +172,91 @@ export default function DashboardPage() {
         onConfirm={handleConfirm}
         submitting={createMeal.isPending}
       />
+
+      <MealDatesDialog
+        mealType={datesFor}
+        meals={datesList}
+        onClose={() => setDatesFor(null)}
+      />
     </div>
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: number }) {
+function MiniStat({
+  label,
+  value,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  onClick?: () => void;
+}) {
+  const className = "rounded-xl bg-white/15 py-2";
+  if (!onClick) {
+    return (
+      <div className={className}>
+        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-[11px] opacity-90">{label}</p>
+      </div>
+    );
+  }
   return (
-    <div className="rounded-xl bg-white/15 py-2">
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${className} transition-colors hover:bg-white/25 active:scale-[0.98]`}
+    >
       <p className="text-2xl font-bold">{value}</p>
-      <p className="text-[11px] opacity-90">{label}</p>
-    </div>
+      <p className="text-[11px] opacity-90">{label} ›</p>
+    </button>
+  );
+}
+
+function MealDatesDialog({
+  mealType,
+  meals,
+  onClose,
+}: {
+  mealType: MealType | null;
+  meals: MealRecord[];
+  onClose: () => void;
+}) {
+  const label = mealType === "breakfast" ? "Breakfast · උදේ කෑම" : "Dinner · රෑ කෑම";
+  return (
+    <Dialog open={mealType !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>
+            {label} — {meals.length} {meals.length === 1 ? "day" : "days"}
+          </DialogTitle>
+        </DialogHeader>
+        {meals.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">No records yet.</p>
+        ) : (
+          <ul className="max-h-[55vh] space-y-1 overflow-y-auto">
+            {meals.map((m) => (
+              <li
+                key={m.id}
+                className="flex items-center justify-between rounded-xl bg-secondary px-4 py-2.5 text-sm"
+              >
+                <span className="font-medium">
+                  {format(new Date(`${m.meal_date}T00:00:00`), "EEE, dd MMM yyyy")}
+                </span>
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  {m.egg_count > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Egg className="h-3.5 w-3.5" />
+                      {m.egg_count}
+                    </span>
+                  )}
+                  <span className="font-semibold text-foreground">{formatRs(m.total_price)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -5,9 +5,12 @@ import { Providers } from "./providers";
 
 const sinhala = Noto_Sans_Sinhala({
   subsets: ["sinhala", "latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
   variable: "--font-sinhala",
   display: "swap",
+  preload: true,
+  fallback: ["system-ui", "sans-serif"],
+  adjustFontFallback: false,
 });
 
 const APP_NAME = "බත්පත";

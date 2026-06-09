@@ -1,20 +1,19 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { getSession } from "./session";
-import { supabaseAdmin } from "./supabase/admin";
 import type { Role } from "./types";
 
 export interface AuthedUser {
   id: string;
   name: string;
   role: Role;
-  active: boolean;
 }
 
 /**
- * Resolve the current request's authenticated, *active* user, re-read from
- * the database so role/active changes take effect immediately.
- * Returns either { user } or { response } (a 401/403 to return directly).
+ * Resolve the current request's authenticated user from the signed session
+ * cookie. The session is a tamper-proof HMAC-signed JWT, so we trust its
+ * userId/role directly — no database round-trip per request. (Disabled users
+ * are blocked at login; existing sessions can be ended by resetting the PIN.)
  */
 export async function requireUser(): Promise<
   { user: AuthedUser; response?: never } | { user?: never; response: NextResponse }
@@ -23,18 +22,7 @@ export async function requireUser(): Promise<
   if (!session) {
     return { response: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) };
   }
-
-  const { data, error } = await supabaseAdmin()
-    .from("users")
-    .select("id, name, role, active")
-    .eq("id", session.userId)
-    .single();
-
-  if (error || !data || !data.active) {
-    return { response: NextResponse.json({ error: "Account unavailable" }, { status: 403 }) };
-  }
-
-  return { user: data as AuthedUser };
+  return { user: { id: session.userId, name: session.name, role: session.role } };
 }
 
 export async function requireAdmin(): Promise<

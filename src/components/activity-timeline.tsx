@@ -86,7 +86,7 @@ export function ActivityTimeline({
       {groups.map(([date, items]) => (
         <div key={date} className="space-y-2">
           <p className="px-1 text-sm font-semibold text-muted-foreground">
-            {format(new Date(`${date}T00:00:00`), "dd MMM yyyy")}
+            {format(new Date(`${date}T00:00:00`), "EEE, dd MMM yyyy")}
           </p>
 
           {items.map((it) =>

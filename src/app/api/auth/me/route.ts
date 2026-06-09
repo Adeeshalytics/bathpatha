@@ -16,7 +16,7 @@ export async function GET() {
     id: user.id,
     name: user.name,
     role: user.role,
-    active: user.active,
+    active: true,
     created_at: "",
     has_pin: true,
   };

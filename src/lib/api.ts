@@ -80,6 +80,7 @@ export const apiCreateSettlement = (input: {
   user_id: string;
   amount: number;
   notes?: string;
+  settled_on?: string;
 }) =>
   request<Settlement>("/api/settlements", {
     method: "POST",

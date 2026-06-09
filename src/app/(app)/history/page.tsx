@@ -14,8 +14,8 @@ import type { MealRecord } from "@/lib/types";
 export default function HistoryPage() {
   const userId = useAuth((s) => s.userId);
   const isAdmin = useIsAdmin();
-  const { data: meals, isLoading } = useMeals(userId ?? undefined);
-  const { data: settlements } = useSettlements(userId ?? undefined);
+  const { data: meals, isLoading } = useMeals(userId ?? undefined, !!userId);
+  const { data: settlements } = useSettlements(userId ?? undefined, !!userId);
   const { data: summaries } = useSummaries();
   const [settleOpen, setSettleOpen] = useState(false);
 

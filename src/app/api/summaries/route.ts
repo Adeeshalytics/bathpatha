@@ -18,25 +18,31 @@ export async function GET(req: NextRequest) {
   const to = req.nextUrl.searchParams.get("to");
   const supabase = supabaseAdmin();
 
-  const { data: users, error: usersErr } = await supabase
-    .from("users")
-    .select("id, name, role, active, created_at")
-    .order("name", { ascending: true });
-  if (usersErr) return NextResponse.json({ error: usersErr.message }, { status: 500 });
-
   let mealQuery = supabase
     .from("meal_records")
     .select("user_id, meal_type, egg_count, total_price");
   if (from) mealQuery = mealQuery.gte("meal_date", from);
   if (to) mealQuery = mealQuery.lte("meal_date", to);
-  const { data: meals, error: mealsErr } = await mealQuery;
-  if (mealsErr) return NextResponse.json({ error: mealsErr.message }, { status: 500 });
 
   let settleQuery = supabase.from("settlements").select("user_id, amount, settled_at");
   if (from) settleQuery = settleQuery.gte("settled_at", from);
   if (to) settleQuery = settleQuery.lte("settled_at", `${to}T23:59:59.999Z`);
-  const { data: settlements, error: settleErr } = await settleQuery;
-  if (settleErr) return NextResponse.json({ error: settleErr.message }, { status: 500 });
+
+  // Run all three reads concurrently instead of awaiting them in series.
+  const [usersRes, mealsRes, settlementsRes] = await Promise.all([
+    supabase.from("users").select("id, name, role, active, created_at").order("name", { ascending: true }),
+    mealQuery,
+    settleQuery,
+  ]);
+
+  if (usersRes.error) return NextResponse.json({ error: usersRes.error.message }, { status: 500 });
+  if (mealsRes.error) return NextResponse.json({ error: mealsRes.error.message }, { status: 500 });
+  if (settlementsRes.error)
+    return NextResponse.json({ error: settlementsRes.error.message }, { status: 500 });
+
+  const users = usersRes.data;
+  const meals = mealsRes.data;
+  const settlements = settlementsRes.data;
 
   const summaries: UserSummary[] = (users ?? []).map((u) => {
     const userMeals = (meals ?? []).filter((m) => m.user_id === u.id);
