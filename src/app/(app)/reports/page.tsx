@@ -72,13 +72,27 @@ export default function ReportsPage() {
       <Card>
         <CardContent className="space-y-3 p-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <Label htmlFor="from">From</Label>
-              <Input id="from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+              <Input
+                id="from"
+                type="date"
+                max={to || undefined}
+                className="w-full min-w-0 appearance-none"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
             </div>
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <Label htmlFor="to">To</Label>
-              <Input id="to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+              <Input
+                id="to"
+                type="date"
+                min={from || undefined}
+                className="w-full min-w-0 appearance-none"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
             </div>
           </div>
           {(from || to) && (
