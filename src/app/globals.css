@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 33% 98%;
+    --foreground: 20 14% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14% 12%;
+    --primary: 24 90% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 30% 94%;
+    --secondary-foreground: 20 14% 18%;
+    --muted: 30 20% 94%;
+    --muted-foreground: 20 8% 42%;
+    --accent: 142 55% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 24 12% 88%;
+    --input: 24 12% 86%;
+    --ring: 24 90% 48%;
+    --radius: 1rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    /* Respect device safe areas (notches / home indicators) */
+    padding-bottom: env(safe-area-inset-bottom);
+    overscroll-behavior-y: none;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+  }
+}
