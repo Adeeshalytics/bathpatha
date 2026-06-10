@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { HandCoins } from "lucide-react";
+import { HandCoins, CalendarPlus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { SettleDialog } from "@/components/settle-dialog";
+import { AddPastMealDialog } from "@/components/add-past-meal-dialog";
 import { useAuth, useIsAdmin } from "@/store/auth";
 import { useMeals, useSettlements, useSummaries } from "@/lib/queries";
 import { formatRs, isWithinEditWindow } from "@/lib/utils";
@@ -18,6 +19,7 @@ export default function HistoryPage() {
   const { data: settlements } = useSettlements(userId ?? undefined, !!userId);
   const { data: summaries } = useSummaries();
   const [settleOpen, setSettleOpen] = useState(false);
+  const [addMealOpen, setAddMealOpen] = useState(false);
 
   const me = useMemo(() => summaries?.find((s) => s.user.id === userId), [summaries, userId]);
 
@@ -40,6 +42,10 @@ export default function HistoryPage() {
         </CardContent>
       </Card>
 
+      <Button variant="outline" className="w-full" onClick={() => setAddMealOpen(true)}>
+        <CalendarPlus className="h-4 w-4" /> පෙර දිනක කෑමක් · Add a meal I forgot
+      </Button>
+
       <p className="text-sm text-muted-foreground">
         Meals can be edited within 48 hours of being recorded.
       </p>
@@ -56,12 +62,20 @@ export default function HistoryPage() {
       )}
 
       {userId && (
-        <SettleDialog
-          open={settleOpen}
-          onOpenChange={setSettleOpen}
-          userId={userId}
-          defaultAmount={me?.balance ?? 0}
-        />
+        <>
+          <SettleDialog
+            open={settleOpen}
+            onOpenChange={setSettleOpen}
+            userId={userId}
+            defaultAmount={me?.balance ?? 0}
+          />
+          <AddPastMealDialog
+            open={addMealOpen}
+            onOpenChange={setAddMealOpen}
+            userId={userId}
+            meals={meals ?? []}
+          />
+        </>
       )}
     </div>
   );

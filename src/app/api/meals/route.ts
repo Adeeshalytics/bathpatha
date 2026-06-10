@@ -49,6 +49,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "You can only record your own meals." }, { status: 403 });
   }
 
+  // Non-admins may only record meals for the recent past (forgot-to-mark window)
+  // and never the future. Admins can backdate freely. The bounds are widened by
+  // a day on each side to absorb server/client timezone skew (the UI enforces
+  // the exact "today, yesterday, day-before" set).
+  if (user.role !== "admin") {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(meal_date)) {
+      return NextResponse.json({ error: "Invalid meal date." }, { status: 400 });
+    }
+    const dayMs = 24 * 60 * 60 * 1000;
+    const target = new Date(`${meal_date}T00:00:00Z`).getTime();
+    const todayUtc = new Date(`${localDateString()}T00:00:00Z`).getTime();
+    const diffDays = Math.round((target - todayUtc) / dayMs);
+    if (diffDays > 1) {
+      return NextResponse.json({ error: "You cannot record a meal in the future." }, { status: 400 });
+    }
+    if (diffDays < -3) {
+      return NextResponse.json(
+        { error: "You can only add a forgotten meal from the last 2 days." },
+        { status: 400 },
+      );
+    }
+  }
+
   const settings = await getSettings();
   const meal_price = mealUnitPrice(settings, meal_type);
   const egg_price = settings.egg_price;
