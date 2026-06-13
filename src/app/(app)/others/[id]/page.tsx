@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { SettleDialog } from "@/components/settle-dialog";
+import { Avatar } from "@/components/avatar";
 import { useMeals, useSettlements, useSummaries } from "@/lib/queries";
 import { useAuth, useIsAdmin } from "@/store/auth";
 import { formatRs } from "@/lib/utils";
@@ -38,8 +39,14 @@ export default function UserDetailPage() {
 
       <Card className="bg-primary text-primary-foreground">
         <CardContent className="p-5">
-          <h1 className="text-xl font-bold">{summary?.user.name ?? "…"}</h1>
-          <p className="mt-2 text-sm opacity-90">ගෙවිය යුතු මුදල · Owed</p>
+          <div className="flex items-center gap-3">
+            <Avatar
+              name={summary?.user.name ?? ""}
+              className="h-12 w-12 border-2 border-white/30 bg-white/15 text-primary-foreground"
+            />
+            <h1 className="text-xl font-bold">{summary?.user.name ?? "…"}</h1>
+          </div>
+          <p className="mt-3 text-sm opacity-90">ගෙවිය යුතු මුදල · Owed</p>
           <p className="text-3xl font-bold">{summary ? formatRs(summary.balance) : "—"}</p>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm">
             <div className="rounded-xl bg-white/15 py-2">

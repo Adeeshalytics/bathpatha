@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { HandCoins, CalendarPlus } from "lucide-react";
+import { HandCoins, CalendarPlus, NotebookPen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { SettleDialog } from "@/components/settle-dialog";
 import { AddPastMealDialog } from "@/components/add-past-meal-dialog";
+import { NotesDialog } from "@/components/notes-dialog";
 import { useAuth, useIsAdmin } from "@/store/auth";
 import { useMeals, useSettlements, useSummaries } from "@/lib/queries";
 import { formatRs, isWithinEditWindow } from "@/lib/utils";
@@ -20,6 +21,7 @@ export default function HistoryPage() {
   const { data: summaries } = useSummaries();
   const [settleOpen, setSettleOpen] = useState(false);
   const [addMealOpen, setAddMealOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const me = useMemo(() => summaries?.find((s) => s.user.id === userId), [summaries, userId]);
 
@@ -42,9 +44,24 @@ export default function HistoryPage() {
         </CardContent>
       </Card>
 
-      <Button variant="outline" className="w-full" onClick={() => setAddMealOpen(true)}>
-        <CalendarPlus className="h-4 w-4" /> පෙර දිනක කෑමක් · Add a meal I forgot
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          className="h-auto min-h-11 flex-1 whitespace-normal py-2 text-center leading-tight"
+          onClick={() => setAddMealOpen(true)}
+        >
+          <CalendarPlus className="h-4 w-4 shrink-0" /> පෙර දිනක කෑමක් · Add a meal I forgot
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="shrink-0"
+          onClick={() => setNotesOpen(true)}
+          aria-label="Notes"
+        >
+          <NotebookPen className="h-4 w-4" />
+        </Button>
+      </div>
 
       <p className="text-sm text-muted-foreground">
         Meals can be edited within 48 hours of being recorded.
@@ -75,6 +92,7 @@ export default function HistoryPage() {
             userId={userId}
             meals={meals ?? []}
           />
+          <NotesDialog open={notesOpen} onOpenChange={setNotesOpen} userId={userId} />
         </>
       )}
     </div>

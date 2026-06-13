@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChevronRight, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar } from "@/components/avatar";
 import { useSummaries } from "@/lib/queries";
 import { formatRs } from "@/lib/utils";
 
@@ -29,9 +30,7 @@ export default function OthersPage() {
           <Link key={s.user.id} href={`/others/${s.user.id}`}>
             <Card className="transition-colors hover:border-primary">
               <CardContent className="flex items-center gap-3 p-4">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">
-                  {s.user.name.charAt(0)}
-                </span>
+                <Avatar name={s.user.name} className="h-11 w-11" textClassName="font-semibold" />
                 <div className="flex-1">
                   <p className="flex items-center gap-1.5 font-semibold">
                     {s.user.name}

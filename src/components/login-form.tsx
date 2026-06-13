@@ -8,6 +8,7 @@ import { ChevronLeft, Delete, ShieldCheck } from "lucide-react";
 import { apiListUsers, apiLogin } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/avatar";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
 import type { User } from "@/lib/types";
@@ -70,9 +71,7 @@ export function LoginForm() {
                 }}
                 className="flex flex-col items-center gap-1 rounded-2xl border border-input bg-card p-5 text-center font-semibold transition-colors hover:border-primary hover:bg-secondary"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg text-primary">
-                  {u.name.charAt(0)}
-                </span>
+                <Avatar name={u.name} className="h-12 w-12" textClassName="text-lg" />
                 {u.name}
                 {u.role === "admin" && (
                   <span className="flex items-center gap-1 text-[11px] font-normal text-accent">
