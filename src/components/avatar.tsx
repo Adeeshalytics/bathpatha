@@ -2,12 +2,14 @@ import Image, { type StaticImageData } from "next/image";
 import { cn } from "@/lib/utils";
 import nayantha from "@/images/nayantha.webp";
 import lahiru from "@/images/lahiru.webp";
+import bevin from "@/images/bevin.webp";
 
 // Profile photos keyed by user name (lowercased). Names without a photo
 // fall back to a coloured circle showing the first letter.
 const PHOTOS: Record<string, StaticImageData> = {
   nayantha,
   lahiru,
+  bevin,
 };
 
 export function Avatar({
