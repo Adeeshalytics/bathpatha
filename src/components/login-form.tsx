@@ -9,6 +9,8 @@ import { apiListUsers, apiLogin } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/avatar";
+import { RiceLoader } from "@/components/rice-loader";
+import { RiceLoaderOverlay } from "@/components/rice-loader-overlay";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
 import type { User } from "@/lib/types";
@@ -55,7 +57,11 @@ export function LoginForm() {
           <p className="mb-4 text-center text-sm font-medium text-muted-foreground">
             ඔබ කවුද? · Who are you?
           </p>
-          {isLoading && <p className="py-8 text-center text-muted-foreground">Loading…</p>}
+          {isLoading && (
+            <div className="flex justify-center py-8">
+              <RiceLoader size={128} showWordmark={false} label="පරිශීලකයන් පූරණය වෙමින්" />
+            </div>
+          )}
           {error && (
             <p className="py-8 text-center text-sm text-destructive">
               Could not load users. Check your connection.
@@ -88,6 +94,8 @@ export function LoginForm() {
 
   // ---- PIN entry screen ----
   return (
+    <>
+    <RiceLoaderOverlay visible={submitting} label="ඇතුළු වෙමින්…" />
     <Card className="w-full">
       <CardContent className="p-5">
         <button
@@ -148,5 +156,6 @@ export function LoginForm() {
         </div>
       </CardContent>
     </Card>
+    </>
   );
 }
