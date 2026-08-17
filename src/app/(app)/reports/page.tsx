@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSummaries, useMeals } from "@/lib/queries";
+import { useSummaries, useMeals, useSettlements } from "@/lib/queries";
 import { useCanViewReports } from "@/store/auth";
 import { formatRs } from "@/lib/utils";
 import { buildDetailedCsv, downloadCsv, openPrintableReport } from "@/lib/report-export";
@@ -17,25 +17,27 @@ export default function ReportsPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const { data: summaries, isLoading } = useSummaries(from || undefined, to || undefined);
-  // Raw meals power the meal-by-meal detail in the CSV / PDF export.
+  // Raw meals + settlements power the meal-by-meal detail and the amount owed
+  // in the CSV / PDF export.
   const { data: meals } = useMeals();
+  const { data: settlements } = useSettlements();
 
   if (!canView) {
     return <p className="py-12 text-center text-muted-foreground">Admins only.</p>;
   }
 
   const fileTag = `${from ? `-${from}` : ""}${to ? `-to-${to}` : ""}`;
-  const downloadDisabled = !summaries?.length || !meals;
+  const downloadDisabled = !summaries?.length || !meals || !settlements;
 
   const handleCsv = () => {
-    if (!summaries || !meals) return;
-    const csv = buildDetailedCsv(summaries, meals, from || undefined, to || undefined);
+    if (!summaries || !meals || !settlements) return;
+    const csv = buildDetailedCsv(summaries, meals, settlements, from || undefined, to || undefined);
     downloadCsv(csv, `bathpatha-report${fileTag}.csv`);
   };
 
   const handlePdf = () => {
-    if (!summaries || !meals) return;
-    const ok = openPrintableReport(summaries, meals, from || undefined, to || undefined);
+    if (!summaries || !meals || !settlements) return;
+    const ok = openPrintableReport(summaries, meals, settlements, from || undefined, to || undefined);
     if (!ok) toast.error("Please allow pop-ups to download the PDF report.");
   };
 

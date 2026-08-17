@@ -5,9 +5,10 @@
 // =====================================================================
 import { format, parseISO } from "date-fns";
 import { formatRs } from "./utils";
-import type { MealRecord, UserSummary } from "./types";
+import type { MealRecord, Settlement, UserSummary } from "./types";
 
 export interface DetailRow {
+  userId: string;
   date: string; // YYYY-MM-DD
   name: string;
   meal: "breakfast" | "dinner";
@@ -46,6 +47,7 @@ export function buildDetailRows(
   return meals
     .filter((m) => (!from || m.meal_date >= from) && (!to || m.meal_date <= to))
     .map((m) => ({
+      userId: m.user_id,
       date: m.meal_date,
       name: nameById.get(m.user_id) ?? "Unknown",
       meal: m.meal_type,
@@ -61,6 +63,22 @@ function nameMap(summaries: UserSummary[]): Map<string, string> {
   return new Map(summaries.map((s) => [s.user.id, s.user.name]));
 }
 
+/**
+ * Keep only settlements whose payment date falls inside the report window —
+ * mirroring the summaries endpoint so the per-person "Owed" reconciles exactly.
+ */
+export function settlementsInRange(
+  settlements: Settlement[],
+  from?: string,
+  to?: string,
+): Settlement[] {
+  return settlements.filter(
+    (s) =>
+      (!from || s.settled_at >= from) &&
+      (!to || s.settled_at <= `${to}T23:59:59.999Z`),
+  );
+}
+
 // ---------------------------------------------------------------------
 //  CSV
 // ---------------------------------------------------------------------
@@ -70,10 +88,17 @@ const csvRow = (cells: (string | number)[]) => cells.map(csvCell).join(",");
 export function buildDetailedCsv(
   summaries: UserSummary[],
   meals: MealRecord[],
+  settlements: Settlement[],
   from?: string,
   to?: string,
 ): string {
-  const details = buildDetailRows(meals, nameMap(summaries), from, to);
+  const names = nameMap(summaries);
+  const details = buildDetailRows(meals, names, from, to);
+  const payments = settlementsInRange(settlements, from, to).sort(
+    (a, b) =>
+      (names.get(a.user_id) ?? "").localeCompare(names.get(b.user_id) ?? "") ||
+      a.settled_at.localeCompare(b.settled_at),
+  );
 
   const lines: string[] = [];
   lines.push(csvRow(["Bathpatha — Meal Report"]));
@@ -127,6 +152,25 @@ export function buildDetailedCsv(
   for (const r of details) {
     lines.push(csvRow([r.date, r.name, mealLabel(r.meal), r.eggs, r.mealPrice, r.eggTotal, r.total]));
   }
+  lines.push("");
+
+  // Payments (settlements) recorded in the window
+  lines.push(csvRow(["Payments"]));
+  lines.push(csvRow(["Date", "Name", "Amount Paid (Rs)", "Notes"]));
+  if (payments.length === 0) {
+    lines.push(csvRow(["(none)", "", "", ""]));
+  } else {
+    for (const p of payments) {
+      lines.push(
+        csvRow([
+          format(parseISO(p.settled_at), "yyyy-MM-dd"),
+          names.get(p.user_id) ?? "Unknown",
+          p.amount,
+          p.notes ?? "",
+        ]),
+      );
+    }
+  }
 
   return lines.join("\n");
 }
@@ -150,10 +194,16 @@ const esc = (v: string | number) =>
 export function buildReportHtml(
   summaries: UserSummary[],
   meals: MealRecord[],
+  settlements: Settlement[],
   from?: string,
   to?: string,
 ): string {
   const details = buildDetailRows(meals, nameMap(summaries), from, to);
+  const rangeSettlements = settlementsInRange(settlements, from, to);
+
+  // The report opens as an about:blank window (opaque origin), so bake the
+  // app's real origin in now for the "Back to app" navigation fallback.
+  const appOrigin = typeof window !== "undefined" ? window.location.origin : "";
 
   const totals = summaries.reduce(
     (a, s) => ({
@@ -181,19 +231,39 @@ export function buildReportHtml(
     )
     .join("");
 
-  // Group the detail rows by person for a readable per-person breakdown.
-  const byPerson = new Map<string, DetailRow[]>();
+  // Per-person breakdown: meals + payments in date order, closing on the
+  // amount still owed (charged − paid) taken straight from the summary so it
+  // reconciles exactly with the table above.
+  const mealsByUser = new Map<string, DetailRow[]>();
   for (const r of details) {
-    if (!byPerson.has(r.name)) byPerson.set(r.name, []);
-    byPerson.get(r.name)!.push(r);
+    const list = mealsByUser.get(r.userId) ?? [];
+    list.push(r);
+    mealsByUser.set(r.userId, list);
+  }
+  const paysByUser = new Map<string, Settlement[]>();
+  for (const p of rangeSettlements) {
+    const list = paysByUser.get(p.user_id) ?? [];
+    list.push(p);
+    paysByUser.set(p.user_id, list);
   }
 
-  const detailSections = [...byPerson.entries()]
-    .map(([name, rows]) => {
-      const sub = rows.reduce((a, r) => a + r.total, 0);
-      const body = rows
-        .map(
-          (r) => `<tr>
+  const detailSections = summaries
+    .filter(
+      (s) =>
+        (mealsByUser.get(s.user.id)?.length ?? 0) > 0 ||
+        (paysByUser.get(s.user.id)?.length ?? 0) > 0,
+    )
+    .map((s) => {
+      const mealRows = mealsByUser.get(s.user.id) ?? [];
+      const payRows = paysByUser.get(s.user.id) ?? [];
+
+      // Interleave meals and payments chronologically (payments after meals on
+      // the same day).
+      const rows: { sort: string; html: string }[] = [];
+      for (const r of mealRows) {
+        rows.push({
+          sort: `${r.date}0`,
+          html: `<tr>
             <td>${esc(fmtDate(r.date))}</td>
             <td>${esc(mealLabel(r.meal))}</td>
             <td class="num">${r.eggs}</td>
@@ -201,14 +271,42 @@ export function buildReportHtml(
             <td class="num">${esc(formatRs(r.eggTotal))}</td>
             <td class="num">${esc(formatRs(r.total))}</td>
           </tr>`,
-        )
-        .join("");
+        });
+      }
+      for (const p of payRows) {
+        const d = p.settled_at.slice(0, 10);
+        rows.push({
+          sort: `${d}1`,
+          html: `<tr class="pay">
+            <td>${esc(fmtDate(d))}</td>
+            <td colspan="4">Payment${p.notes ? ` · ${esc(p.notes)}` : ""}</td>
+            <td class="num">− ${esc(formatRs(p.amount))}</td>
+          </tr>`,
+        });
+      }
+      rows.sort((a, b) => a.sort.localeCompare(b.sort));
+      const body = rows.map((r) => r.html).join("");
+
+      const pill =
+        `<span class="pill">${mealRows.length} meal${mealRows.length === 1 ? "" : "s"}</span>` +
+        (payRows.length
+          ? ` <span class="pill pay-pill">${payRows.length} payment${payRows.length === 1 ? "" : "s"}</span>`
+          : "");
+
+      const paidRow = s.total_settled
+        ? `<tr class="pay"><td colspan="5">Paid</td><td class="num">− ${esc(formatRs(s.total_settled))}</td></tr>`
+        : "";
+
       return `<section class="person">
-        <h3>${esc(name)} <span class="pill">${rows.length} meal${rows.length === 1 ? "" : "s"}</span></h3>
+        <h3>${esc(s.user.name)} ${pill}</h3>
         <table class="detail">
           <thead><tr><th>Date</th><th>Meal</th><th class="num">Eggs</th><th class="num">Meal</th><th class="num">Eggs Rs</th><th class="num">Total</th></tr></thead>
           <tbody>${body}</tbody>
-          <tfoot><tr><td colspan="5">Subtotal</td><td class="num">${esc(formatRs(sub))}</td></tr></tfoot>
+          <tfoot>
+            <tr><td colspan="5">Charged</td><td class="num">${esc(formatRs(s.total_charged))}</td></tr>
+            ${paidRow}
+            <tr class="owed-row"><td colspan="5">Owed</td><td class="num owed">${esc(formatRs(s.balance))}</td></tr>
+          </tfoot>
         </table>
       </section>`;
     })
@@ -229,24 +327,45 @@ export function buildReportHtml(
   h2 { font-size:15px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:26px 0 8px; }
   h3 { font-size:15px; margin:18px 0 6px; }
   .pill { font-size:11px; font-weight:600; color:var(--brand); background:#fbead9; border-radius:999px; padding:2px 8px; margin-left:6px; }
+  .pay-pill { color:#157f43; background:#e6f5ec; }
   table { width:100%; border-collapse:collapse; font-size:13px; }
   th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); }
   th { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); }
   .num { text-align:right; font-variant-numeric:tabular-nums; }
   .owed { font-weight:700; color:var(--brand); }
-  table.summary tfoot td, table.detail tfoot td { font-weight:700; border-top:2px solid var(--brand); border-bottom:none; }
+  tr.pay td { color:#157f43; }
+  tfoot td { font-weight:700; border-bottom:none; }
+  tfoot tr:first-child td { border-top:2px solid var(--brand); }
+  tr.owed-row td { font-size:14px; }
   section.person { break-inside:avoid; }
   .empty { color:var(--muted); font-style:italic; padding:16px 0; }
-  .print-bar { position:sticky; top:0; background:#fff; padding:10px 0 16px; margin-bottom:8px; }
-  .print-bar button { font:inherit; font-weight:700; background:var(--brand); color:#fff; border:none; border-radius:10px; padding:10px 18px; cursor:pointer; }
-  .print-bar span { color:var(--muted); font-size:12px; margin-left:10px; }
+  .print-bar { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; align-items:center; gap:10px; background:#fff; padding:10px 0 16px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .print-bar button { font:inherit; font-weight:700; border:none; border-radius:10px; padding:10px 18px; cursor:pointer; }
+  .print-bar .btn-print { background:var(--brand); color:#fff; }
+  .print-bar .btn-close { background:#f3efe9; color:var(--ink); border:1px solid var(--line); }
+  .print-bar span { color:var(--muted); font-size:12px; }
   @media print { .print-bar { display:none; } body { padding:0; } }
 </style></head>
 <body>
   <div class="print-bar">
-    <button onclick="window.print()">Save as PDF / Print</button>
+    <button class="btn-close" onclick="closeReport()">← Back to app</button>
+    <button class="btn-print" onclick="window.print()">Save as PDF / Print</button>
     <span>Choose “Save as PDF” as the destination.</span>
   </div>
+  <script>
+    function closeReport() {
+      // Bring the app window back to the front if we still have a handle to it,
+      // then close this report window (allowed because it was script-opened).
+      try { if (window.opener && !window.opener.closed) window.opener.focus(); } catch (e) {}
+      window.close();
+      // Fallback for contexts (some installed PWAs) where close() is a no-op:
+      // navigate this same window back to the app's Reports screen.
+      setTimeout(function () {
+        var app = ${JSON.stringify(appOrigin)};
+        if (app) window.location.replace(app + '/reports');
+      }, 200);
+    }
+  </script>
   <header>
     <div class="brand">බත්පත<small>BATHPATHA · MEAL REPORT</small></div>
     <div class="meta">Range: ${esc(rangeLabel(from, to))}<br>Generated: ${esc(format(new Date(), "dd MMM yyyy HH:mm"))}</div>
@@ -271,10 +390,11 @@ export function buildReportHtml(
 export function openPrintableReport(
   summaries: UserSummary[],
   meals: MealRecord[],
+  settlements: Settlement[],
   from?: string,
   to?: string,
 ): boolean {
-  const html = buildReportHtml(summaries, meals, from, to);
+  const html = buildReportHtml(summaries, meals, settlements, from, to);
   const win = window.open("", "_blank");
   if (!win) return false;
   win.document.open();
