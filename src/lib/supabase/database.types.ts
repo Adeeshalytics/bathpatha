@@ -9,7 +9,7 @@ export type Database = {
           id: string;
           name: string;
           pin_hash: string | null;
-          role: "admin" | "user";
+          role: "admin" | "user" | "chef";
           active: boolean;
           created_at: string;
         };
@@ -17,7 +17,7 @@ export type Database = {
           id?: string;
           name: string;
           pin_hash?: string | null;
-          role?: "admin" | "user";
+          role?: "admin" | "user" | "chef";
           active?: boolean;
           created_at?: string;
         };
@@ -25,7 +25,7 @@ export type Database = {
           id?: string;
           name?: string;
           pin_hash?: string | null;
-          role?: "admin" | "user";
+          role?: "admin" | "user" | "chef";
           active?: boolean;
           created_at?: string;
         };

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   const session = await getSession();
-  if (session) redirect("/dashboard");
+  if (session) redirect(session.role === "chef" ? "/reports" : "/dashboard");
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-6 py-10">

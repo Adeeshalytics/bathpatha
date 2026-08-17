@@ -16,10 +16,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
 
   const body = await req.json().catch(() => ({}));
-  const patch: { active?: boolean; role?: "admin" | "user"; pin_hash?: string | null } = {};
+  const patch: { active?: boolean; role?: "admin" | "user" | "chef"; pin_hash?: string | null } = {};
 
   if (typeof body.active === "boolean") patch.active = body.active;
-  if (body.role === "admin" || body.role === "user") patch.role = body.role;
+  if (body.role === "admin" || body.role === "user" || body.role === "chef") patch.role = body.role;
   if (body.reset_pin === true) patch.pin_hash = null;
 
   if (Object.keys(patch).length === 0) {

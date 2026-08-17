@@ -26,6 +26,9 @@ function canEdit(
   record: MealRecord,
 ): { ok: true } | { ok: false; status: number; error: string } {
   if (user.role === "admin") return { ok: true };
+  if (user.role === "chef") {
+    return { ok: false, status: 403, error: "This account is view-only." };
+  }
   if (record.user_id !== user.id) {
     return { ok: false, status: 403, error: "You can only edit your own meals." };
   }

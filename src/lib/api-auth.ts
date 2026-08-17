@@ -35,3 +35,18 @@ export async function requireAdmin(): Promise<
   }
   return result;
 }
+
+/**
+ * Like requireUser, but rejects the view-only chef role. Use on endpoints that
+ * write data (recording meals, settling balances) which a chef must never do.
+ */
+export async function requireContributor(): Promise<
+  { user: AuthedUser; response?: never } | { user?: never; response: NextResponse }
+> {
+  const result = await requireUser();
+  if (result.response) return result;
+  if (result.user.role === "chef") {
+    return { response: NextResponse.json({ error: "This account is view-only." }, { status: 403 }) };
+  }
+  return result;
+}

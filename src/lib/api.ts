@@ -102,7 +102,7 @@ export const apiUpdateSettings = (input: Partial<Settings>) =>
   });
 
 // ---- admin: users ----
-export const apiAddUser = (input: { name: string; role: "admin" | "user" }) =>
+export const apiAddUser = (input: { name: string; role: "admin" | "user" | "chef" }) =>
   request<User>("/api/admin/users", {
     method: "POST",
     body: JSON.stringify(input),
@@ -110,7 +110,7 @@ export const apiAddUser = (input: { name: string; role: "admin" | "user" }) =>
 
 export const apiUpdateUser = (
   id: string,
-  input: { active?: boolean; role?: "admin" | "user"; reset_pin?: boolean },
+  input: { active?: boolean; role?: "admin" | "user" | "chef"; reset_pin?: boolean },
 ) =>
   request<User>(`/api/admin/users/${id}`, {
     method: "PATCH",

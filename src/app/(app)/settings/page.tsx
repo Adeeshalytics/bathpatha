@@ -141,7 +141,7 @@ function UsersTab() {
   const updateUser = useUpdateUser();
   const [addOpen, setAddOpen] = useState(false);
   const [name, setName] = useState("");
-  const [role, setRole] = useState<"admin" | "user">("user");
+  const [role, setRole] = useState<"admin" | "user" | "chef">("user");
 
   return (
     <div className="space-y-3">
@@ -157,6 +157,9 @@ function UsersTab() {
                 {s.user.name}
                 {s.user.role === "admin" && (
                   <span className="ml-2 text-xs text-accent">admin</span>
+                )}
+                {s.user.role === "chef" && (
+                  <span className="ml-2 text-xs text-primary">chef · view only</span>
                 )}
                 {!s.user.active && (
                   <span className="ml-2 text-xs text-muted-foreground">disabled</span>
@@ -225,9 +228,18 @@ function UsersTab() {
               >
                 Admin
               </Button>
+              <Button
+                variant={role === "chef" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setRole("chef")}
+              >
+                Chef
+              </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              The user sets their own 4-digit PIN the first time they log in.
+              {role === "chef"
+                ? "View-only account (e.g. Aunty) — can see how much everyone owes, but cannot record or change anything."
+                : "The user sets their own 4-digit PIN the first time they log in."}
             </p>
           </div>
           <DialogFooter>

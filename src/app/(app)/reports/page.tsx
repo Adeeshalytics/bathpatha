@@ -1,57 +1,43 @@
 "use client";
 
 import { useState } from "react";
-import { Download } from "lucide-react";
+import { FileText, FileSpreadsheet } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSummaries } from "@/lib/queries";
-import { useIsAdmin } from "@/store/auth";
+import { useSummaries, useMeals } from "@/lib/queries";
+import { useCanViewReports } from "@/store/auth";
 import { formatRs } from "@/lib/utils";
-import type { UserSummary } from "@/lib/types";
-
-function exportCsv(summaries: UserSummary[], from: string, to: string) {
-  const header = [
-    "Name",
-    "Breakfast",
-    "Dinner",
-    "Eggs",
-    "Total Charged",
-    "Total Settled",
-    "Balance Owed",
-  ];
-  const rows = summaries.map((s) => [
-    s.user.name,
-    s.breakfast_count,
-    s.dinner_count,
-    s.egg_count,
-    s.total_charged,
-    s.total_settled,
-    s.balance,
-  ]);
-  const csv = [header, ...rows]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `bathpatha-report${from ? `-${from}` : ""}${to ? `-to-${to}` : ""}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+import { buildDetailedCsv, downloadCsv, openPrintableReport } from "@/lib/report-export";
 
 export default function ReportsPage() {
-  const isAdmin = useIsAdmin();
+  const canView = useCanViewReports();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const { data: summaries, isLoading } = useSummaries(from || undefined, to || undefined);
+  // Raw meals power the meal-by-meal detail in the CSV / PDF export.
+  const { data: meals } = useMeals();
 
-  if (!isAdmin) {
+  if (!canView) {
     return <p className="py-12 text-center text-muted-foreground">Admins only.</p>;
   }
+
+  const fileTag = `${from ? `-${from}` : ""}${to ? `-to-${to}` : ""}`;
+  const downloadDisabled = !summaries?.length || !meals;
+
+  const handleCsv = () => {
+    if (!summaries || !meals) return;
+    const csv = buildDetailedCsv(summaries, meals, from || undefined, to || undefined);
+    downloadCsv(csv, `bathpatha-report${fileTag}.csv`);
+  };
+
+  const handlePdf = () => {
+    if (!summaries || !meals) return;
+    const ok = openPrintableReport(summaries, meals, from || undefined, to || undefined);
+    if (!ok) toast.error("Please allow pop-ups to download the PDF report.");
+  };
 
   const totals = (summaries ?? []).reduce(
     (acc, s) => ({
@@ -143,14 +129,24 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => summaries && exportCsv(summaries, from, to)}
-        disabled={!summaries?.length}
-      >
-        <Download className="h-4 w-4" /> Export CSV
-      </Button>
+      {/* Full report downloads — per-meal detail + per-person totals */}
+      <Card>
+        <CardContent className="space-y-3 p-4">
+          <p className="text-sm font-medium">Download full report</p>
+          <p className="text-xs text-muted-foreground">
+            Every meal with names, dates and prices, plus the total owed per person
+            {from || to ? " for the selected range" : ""}.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Button variant="outline" onClick={handlePdf} disabled={downloadDisabled}>
+              <FileText className="h-4 w-4" /> PDF
+            </Button>
+            <Button variant="outline" onClick={handleCsv} disabled={downloadDisabled}>
+              <FileSpreadsheet className="h-4 w-4" /> CSV
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

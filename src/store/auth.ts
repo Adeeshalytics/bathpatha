@@ -22,3 +22,10 @@ export const useAuth = create<AuthState>((set) => ({
 }));
 
 export const useIsAdmin = () => useAuth((s) => s.role === "admin");
+
+/** True for the view-only chef account (e.g. Aunty). */
+export const useIsChef = () => useAuth((s) => s.role === "chef");
+
+/** Who may open the Reports screen: admins and the view-only chef. */
+export const useCanViewReports = () =>
+  useAuth((s) => s.role === "admin" || s.role === "chef");

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/api-auth";
+import { requireUser, requireContributor } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { computeTotal, getSettings, mealUnitPrice } from "@/lib/pricing";
 import { logAudit } from "@/lib/audit";
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
 // Create a meal record.
 export async function POST(req: NextRequest) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireContributor();
   if (response) return response;
 
   const body = await req.json().catch(() => ({}));

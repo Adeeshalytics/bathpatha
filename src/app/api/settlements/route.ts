@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser } from "@/lib/api-auth";
+import { requireUser, requireContributor } from "@/lib/api-auth";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { logAudit } from "@/lib/audit";
 
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 // Anyone can record a payment against their own balance; admins can record one
 // for any user.
 export async function POST(req: NextRequest) {
-  const { user, response } = await requireUser();
+  const { user, response } = await requireContributor();
   if (response) return response;
 
   const body = await req.json().catch(() => ({}));

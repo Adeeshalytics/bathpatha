@@ -12,7 +12,7 @@ create table if not exists public.users (
   id          uuid primary key default gen_random_uuid(),
   name        text not null unique,
   pin_hash    text,                       -- null until the user sets a PIN on first login
-  role        text not null default 'user' check (role in ('admin', 'user')),
+  role        text not null default 'user' check (role in ('admin', 'user', 'chef')),
   active      boolean not null default true,
   created_at  timestamptz not null default now()
 );

@@ -179,7 +179,7 @@ export function useUpdateUser() {
     mutationFn: (vars: {
       id: string;
       active?: boolean;
-      role?: "admin" | "user";
+      role?: "admin" | "user" | "chef";
       reset_pin?: boolean;
     }) => apiUpdateUser(vars.id, vars),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["summaries"] }),

@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const name = (body.name as string)?.trim();
-  const role = body.role === "admin" ? "admin" : "user";
+  const role =
+    body.role === "admin" ? "admin" : body.role === "chef" ? "chef" : "user";
 
   if (!name) {
     return NextResponse.json({ error: "Name is required." }, { status: 400 });

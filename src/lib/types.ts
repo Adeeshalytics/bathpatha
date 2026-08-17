@@ -2,7 +2,7 @@
 //  Shared domain types
 // =====================================================================
 
-export type Role = "admin" | "user";
+export type Role = "admin" | "user" | "chef";
 export type MealType = "breakfast" | "dinner";
 
 export type AuditAction =

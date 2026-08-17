@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Sinhala } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import { SplashScreen } from "@/components/splash-screen";
 
 const sinhala = Noto_Sans_Sinhala({
   subsets: ["sinhala", "latin"],
@@ -47,7 +46,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="si" suppressHydrationWarning>
       <body className={`${sinhala.variable} font-sans`}>
         <Providers>{children}</Providers>
-        <SplashScreen />
       </body>
     </html>
   );

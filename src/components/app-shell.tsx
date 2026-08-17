@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { OfflineIndicator } from "./offline-indicator";
 import { SyncManager } from "./sync-manager";
 import { BottomNav } from "./bottom-nav";
@@ -19,10 +20,22 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const setUser = useAuth((s) => s.setUser);
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     setUser({ userId, name, role });
   }, [userId, name, role, setUser]);
+
+  // The chef account is view-only. It may browse the read-only Reports and
+  // Others (everyone's meals + amounts owed) screens, but is kept off the
+  // meal-recording ("My history", dashboard) and admin pages.
+  useEffect(() => {
+    const chefAllowed = ["/reports", "/others"];
+    if (role === "chef" && !chefAllowed.some((p) => pathname.startsWith(p))) {
+      router.replace("/reports");
+    }
+  }, [role, pathname, router]);
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-background">

@@ -4,21 +4,31 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, History, Users, Settings, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useIsAdmin } from "@/store/auth";
+import { useAuth } from "@/store/auth";
+import type { Role } from "@/lib/types";
 
-const items = [
-  { href: "/dashboard", label: "මුල", labelEn: "Home", icon: Home },
-  { href: "/history", label: "ඉතිහාසය", labelEn: "History", icon: History },
-  { href: "/others", label: "අනෙක්", labelEn: "Others", icon: Users },
-  { href: "/reports", label: "වාර්තා", labelEn: "Reports", icon: BarChart3, admin: true },
-  { href: "/settings", label: "සැකසුම්", labelEn: "Settings", icon: Settings, admin: true },
+type NavItem = {
+  href: string;
+  label: string;
+  labelEn: string;
+  icon: typeof Home;
+  /** Roles allowed to see this item. */
+  roles: Role[];
+};
+
+const items: NavItem[] = [
+  { href: "/dashboard", label: "මුල", labelEn: "Home", icon: Home, roles: ["admin", "user"] },
+  { href: "/history", label: "ඉතිහාසය", labelEn: "History", icon: History, roles: ["admin", "user"] },
+  { href: "/others", label: "අනෙක්", labelEn: "Others", icon: Users, roles: ["admin", "user", "chef"] },
+  { href: "/reports", label: "වාර්තා", labelEn: "Reports", icon: BarChart3, roles: ["admin", "chef"] },
+  { href: "/settings", label: "සැකසුම්", labelEn: "Settings", icon: Settings, roles: ["admin"] },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
-  const isAdmin = useIsAdmin();
+  const role = useAuth((s) => s.role);
 
-  const visible = items.filter((i) => !i.admin || isAdmin);
+  const visible = role ? items.filter((i) => i.roles.includes(role)) : [];
 
   return (
     <nav className="sticky bottom-0 z-40 border-t bg-card/95 backdrop-blur pb-safe">
