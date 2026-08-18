@@ -16,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { LogoutButton } from "@/components/logout-button";
 import {
   useAddUser,
   useAuditLogs,
@@ -36,10 +35,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">සැකසුම් · Settings</h1>
-        <LogoutButton />
-      </div>
+      <h1 className="text-2xl font-bold">සැකසුම් · Settings</h1>
 
       <Tabs defaultValue="prices">
         <TabsList className="grid w-full grid-cols-3">

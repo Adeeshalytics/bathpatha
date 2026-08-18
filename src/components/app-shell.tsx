@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { OfflineIndicator } from "./offline-indicator";
 import { SyncManager } from "./sync-manager";
 import { BottomNav } from "./bottom-nav";
+import { LogoutButton } from "./logout-button";
 import { useAuth } from "@/store/auth";
 import type { Role } from "@/lib/types";
 
@@ -40,6 +41,11 @@ export function AppShell({
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col bg-background">
       <SyncManager />
+      {/* Persistent top bar — always offers a way to log out, for every role. */}
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-card/95 px-4 py-2.5 backdrop-blur">
+        <span className="text-lg font-bold tracking-tight text-primary">බත්පත</span>
+        <LogoutButton />
+      </header>
       <OfflineIndicator />
       <main className="flex-1 px-4 pb-6 pt-4">{children}</main>
       <BottomNav />

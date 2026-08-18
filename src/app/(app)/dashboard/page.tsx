@@ -13,7 +13,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { EggPicker } from "@/components/egg-picker";
-import { LogoutButton } from "@/components/logout-button";
 import { useAuth } from "@/store/auth";
 import { useCreateMeal, useMeals, useSummaries } from "@/lib/queries";
 import { formatRs, localDateString } from "@/lib/utils";
@@ -78,12 +77,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">ආයුබෝවන් · Hello</p>
-          <h1 className="text-2xl font-bold">{name ?? "…"}</h1>
-        </div>
-        <LogoutButton />
+      <div>
+        <p className="text-sm text-muted-foreground">ආයුබෝවන් · Hello</p>
+        <h1 className="text-2xl font-bold">{name ?? "…"}</h1>
       </div>
 
       {/* Current user card */}
