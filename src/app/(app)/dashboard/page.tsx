@@ -45,6 +45,32 @@ export default function DashboardPage() {
     [meals, datesFor],
   );
 
+  // How many meals are still unpaid. Settlements pay off the oldest meals
+  // first, so the most recent meals that add up to the balance are the unpaid
+  // ones — we count those by type. These are the meals behind the amount owed.
+  const unpaid = useMemo(() => {
+    const settled = me?.total_settled ?? 0;
+    const ordered = [...(meals ?? [])].sort((a, b) =>
+      a.meal_date === b.meal_date
+        ? a.created_at.localeCompare(b.created_at)
+        : a.meal_date.localeCompare(b.meal_date),
+    );
+    let paid = 0;
+    let breakfast = 0;
+    let dinner = 0;
+    let eggs = 0;
+    for (const m of ordered) {
+      if (paid + m.total_price <= settled) {
+        paid += m.total_price; // this meal is covered by past payments
+      } else {
+        if (m.meal_type === "breakfast") breakfast += 1;
+        else if (m.meal_type === "dinner") dinner += 1;
+        eggs += m.egg_count;
+      }
+    }
+    return { breakfast, dinner, eggs };
+  }, [meals, me?.total_settled]);
+
   const todaysMeals = useMemo(
     () => (meals ?? []).filter((m) => m.meal_date === today),
     [meals, today],
@@ -92,18 +118,20 @@ export default function DashboardPage() {
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             <MiniStat
               label="Breakfast"
-              value={me?.breakfast_count ?? 0}
+              main={unpaid.breakfast}
+              sub={`of ${me?.breakfast_count ?? 0}`}
               onClick={() => setDatesFor("breakfast")}
             />
             <MiniStat
               label="Dinner"
-              value={me?.dinner_count ?? 0}
+              main={unpaid.dinner}
+              sub={`of ${me?.dinner_count ?? 0}`}
               onClick={() => setDatesFor("dinner")}
             />
-            <MiniStat label="Eggs" value={me?.egg_count ?? 0} />
+            <MiniStat label="Eggs" main={unpaid.eggs} sub={`of ${me?.egg_count ?? 0}`} />
           </div>
           <p className="mt-2 text-center text-[11px] opacity-70">
-            Tap Breakfast or Dinner to see the dates
+            Unpaid now · small = total taken · tap to see dates
           </p>
         </CardContent>
       </Card>
@@ -180,30 +208,36 @@ export default function DashboardPage() {
 
 function MiniStat({
   label,
-  value,
+  main,
+  sub,
   onClick,
 }: {
   label: string;
-  value: number;
+  /** Prominent value — the count of unpaid meals of this type. */
+  main: number;
+  /** Small caption under the label — the total taken, e.g. "of 24". */
+  sub?: string;
   onClick?: () => void;
 }) {
-  const className = "rounded-xl bg-white/15 py-2";
-  if (!onClick) {
-    return (
-      <div className={className}>
-        <p className="text-2xl font-bold">{value}</p>
-        <p className="text-[11px] opacity-90">{label}</p>
-      </div>
-    );
-  }
+  const className = "rounded-xl bg-white/15 px-1 py-2";
+  const inner = (
+    <>
+      <p className="text-2xl font-bold leading-tight tabular-nums">{main}</p>
+      <p className="text-[11px] opacity-90">
+        {label}
+        {onClick ? " ›" : ""}
+      </p>
+      {sub && <p className="text-[10px] leading-tight opacity-70 tabular-nums">{sub}</p>}
+    </>
+  );
+  if (!onClick) return <div className={className}>{inner}</div>;
   return (
     <button
       type="button"
       onClick={onClick}
       className={`${className} transition-colors hover:bg-white/25 active:scale-[0.98]`}
     >
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-[11px] opacity-90">{label} ›</p>
+      {inner}
     </button>
   );
 }
