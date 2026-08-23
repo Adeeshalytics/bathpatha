@@ -15,7 +15,7 @@ import {
 import { EggPicker } from "@/components/egg-picker";
 import { useAuth } from "@/store/auth";
 import { useCreateMeal, useMeals, useSummaries } from "@/lib/queries";
-import { formatRs, localDateString } from "@/lib/utils";
+import { cn, formatRs, localDateString } from "@/lib/utils";
 import type { MealRecord, MealType } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -59,16 +59,18 @@ export default function DashboardPage() {
     let breakfast = 0;
     let dinner = 0;
     let eggs = 0;
+    const ids = new Set<string>();
     for (const m of ordered) {
       if (paid + m.total_price <= settled) {
         paid += m.total_price; // this meal is covered by past payments
       } else {
+        ids.add(m.id);
         if (m.meal_type === "breakfast") breakfast += 1;
         else if (m.meal_type === "dinner") dinner += 1;
         eggs += m.egg_count;
       }
     }
-    return { breakfast, dinner, eggs };
+    return { breakfast, dinner, eggs, ids };
   }, [meals, me?.total_settled]);
 
   const todaysMeals = useMemo(
@@ -130,9 +132,6 @@ export default function DashboardPage() {
             />
             <MiniStat label="Eggs" main={unpaid.eggs} sub={`of ${me?.egg_count ?? 0}`} />
           </div>
-          <p className="mt-2 text-center text-[11px] opacity-70">
-            Unpaid now · small = total taken · tap to see dates
-          </p>
         </CardContent>
       </Card>
 
@@ -200,6 +199,7 @@ export default function DashboardPage() {
       <MealDatesDialog
         mealType={datesFor}
         meals={datesList}
+        unpaidIds={unpaid.ids}
         onClose={() => setDatesFor(null)}
       />
     </div>
@@ -245,13 +245,16 @@ function MiniStat({
 function MealDatesDialog({
   mealType,
   meals,
+  unpaidIds,
   onClose,
 }: {
   mealType: MealType | null;
   meals: MealRecord[];
+  unpaidIds: Set<string>;
   onClose: () => void;
 }) {
   const label = mealType === "breakfast" ? "Breakfast · උදේ කෑම" : "Dinner · රෑ කෑම";
+  const unpaidCount = meals.reduce((n, m) => n + (unpaidIds.has(m.id) ? 1 : 0), 0);
   return (
     <Dialog open={mealType !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[80vh]">
@@ -263,27 +266,47 @@ function MealDatesDialog({
         {meals.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No records yet.</p>
         ) : (
-          <ul className="max-h-[55vh] space-y-1 overflow-y-auto">
-            {meals.map((m) => (
-              <li
-                key={m.id}
-                className="flex items-center justify-between rounded-xl bg-secondary px-4 py-2.5 text-sm"
-              >
-                <span className="font-medium">
-                  {format(new Date(`${m.meal_date}T00:00:00`), "EEE, dd MMM yyyy")}
-                </span>
-                <span className="flex items-center gap-2 text-muted-foreground">
-                  {m.egg_count > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Egg className="h-3.5 w-3.5" />
-                      {m.egg_count}
+          <>
+            <p className="text-xs text-muted-foreground">
+              {unpaidCount > 0
+                ? `${unpaidCount} not paid yet — highlighted below.`
+                : "All paid up."}
+            </p>
+            <ul className="max-h-[55vh] space-y-1 overflow-y-auto">
+              {meals.map((m) => {
+                const unpaid = unpaidIds.has(m.id);
+                return (
+                  <li
+                    key={m.id}
+                    className={cn(
+                      "flex items-center justify-between rounded-xl px-4 py-2.5 text-sm",
+                      unpaid
+                        ? "border border-primary/40 bg-primary/10"
+                        : "bg-secondary",
+                    )}
+                  >
+                    <span className="flex items-center gap-2 font-medium">
+                      {format(new Date(`${m.meal_date}T00:00:00`), "EEE, dd MMM yyyy")}
+                      {unpaid && (
+                        <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                          Unpaid
+                        </span>
+                      )}
                     </span>
-                  )}
-                  <span className="font-semibold text-foreground">{formatRs(m.total_price)}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      {m.egg_count > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Egg className="h-3.5 w-3.5" />
+                          {m.egg_count}
+                        </span>
+                      )}
+                      <span className="font-semibold text-foreground">{formatRs(m.total_price)}</span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </DialogContent>
     </Dialog>
