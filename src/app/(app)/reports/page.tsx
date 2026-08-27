@@ -23,7 +23,7 @@ export default function ReportsPage() {
   const { data: settlements } = useSettlements();
 
   if (!canView) {
-    return <p className="py-12 text-center text-muted-foreground">Admins only.</p>;
+    return <p className="py-12 text-center text-muted-foreground">Loading…</p>;
   }
 
   const fileTag = `${from ? `-${from}` : ""}${to ? `-to-${to}` : ""}`;

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Coffee, Moon } from "lucide-react";
+import { Coffee, Moon, CalendarDays } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,10 @@ import type { MealRecord, MealType } from "@/lib/types";
 const EGG_OPTIONS = [0, 1, 2, 3, 4];
 
 /**
- * Lets a user record a meal they forgot to mark, for one of the last 3 calendar
- * days (today / yesterday / day before). Days where the meal already exists are
- * blocked, and the server independently enforces the same recency window.
+ * Lets a user record a meal they forgot to mark. Three quick buttons cover
+ * today / yesterday / the day before, and a calendar picker reaches back up to
+ * a month. Days where the meal already exists are blocked, and the server
+ * independently enforces the same recency window.
  */
 export function AddPastMealDialog({
   open,
@@ -49,6 +50,14 @@ export function AddPastMealDialog({
     }
     return arr;
   }, []);
+
+  const today = days[0].date;
+  const minDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 31);
+    return localDateString(d);
+  }, []);
+  const quickDates = useMemo(() => new Set(days.map((d) => d.date)), [days]);
 
   const [date, setDate] = useState(days[1].date); // default: yesterday
   const [mealType, setMealType] = useState<MealType>("breakfast");
@@ -86,10 +95,10 @@ export function AddPastMealDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>අමතක වූ කෑමක් · Add a meal I forgot</DialogTitle>
-          <DialogDescription>Only the last 2 days can be added.</DialogDescription>
+          <DialogDescription>Add a forgotten meal from the last month.</DialogDescription>
         </DialogHeader>
 
-        {/* Day */}
+        {/* Day — quick picks */}
         <div className="grid grid-cols-3 gap-2">
           {days.map((d) => (
             <button
@@ -115,6 +124,31 @@ export function AddPastMealDialog({
             </button>
           ))}
         </div>
+
+        {/* Calendar — pick any date up to a month back */}
+        <label
+          className={cn(
+            "flex cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-colors",
+            !quickDates.has(date)
+              ? "border-primary bg-primary/10"
+              : "border-input bg-card",
+          )}
+        >
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            {quickDates.has(date)
+              ? "Pick another date"
+              : format(new Date(`${date}T00:00:00`), "EEE, dd MMM yyyy")}
+          </span>
+          <input
+            type="date"
+            value={date}
+            min={minDate}
+            max={today}
+            onChange={(e) => e.target.value && setDate(e.target.value)}
+            className="bg-transparent text-sm text-muted-foreground outline-none"
+          />
+        </label>
 
         {/* Meal type */}
         <div className="grid grid-cols-2 gap-2">

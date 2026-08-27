@@ -20,7 +20,7 @@ const items: NavItem[] = [
   { href: "/dashboard", label: "මුල", labelEn: "Home", icon: Home, roles: ["admin", "user"] },
   { href: "/history", label: "ඉතිහාසය", labelEn: "History", icon: History, roles: ["admin", "user"] },
   { href: "/others", label: "අනෙක්", labelEn: "Others", icon: Users, roles: ["admin", "user", "chef"] },
-  { href: "/reports", label: "වාර්තා", labelEn: "Reports", icon: BarChart3, roles: ["admin", "chef"] },
+  { href: "/reports", label: "වාර්තා", labelEn: "Reports", icon: BarChart3, roles: ["admin", "user", "chef"] },
   { href: "/settings", label: "සැකසුම්", labelEn: "Settings", icon: Settings, roles: ["admin"] },
 ];
 

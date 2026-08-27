@@ -50,9 +50,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Non-admins may only record meals for the recent past (forgot-to-mark window)
-  // and never the future. Admins can backdate freely. The bounds are widened by
-  // a day on each side to absorb server/client timezone skew (the UI enforces
-  // the exact "today, yesterday, day-before" set).
+  // and never the future. Admins can backdate freely. The lower bound is widened
+  // by a day to absorb server/client timezone skew (the UI offers up to a month
+  // back via the calendar picker).
   if (user.role !== "admin") {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(meal_date)) {
       return NextResponse.json({ error: "Invalid meal date." }, { status: 400 });
@@ -64,9 +64,9 @@ export async function POST(req: NextRequest) {
     if (diffDays > 1) {
       return NextResponse.json({ error: "You cannot record a meal in the future." }, { status: 400 });
     }
-    if (diffDays < -3) {
+    if (diffDays < -32) {
       return NextResponse.json(
-        { error: "You can only add a forgotten meal from the last 2 days." },
+        { error: "You can only add a forgotten meal from the last month." },
         { status: 400 },
       );
     }
